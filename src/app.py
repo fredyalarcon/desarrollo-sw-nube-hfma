@@ -38,6 +38,6 @@ cors = CORS(app)
 
 api = Api(app)
 api.add_resource(VistaTasks, '/tasks')
-api.add_resource(VistaTask, '/task/<int:id_task>')
+api.add_resource(VistaTask, '/tasks/<int:id_task>')
 api.add_resource(VistaTaskUser, '/tasks/usuario/<int:usuario_id>')
 jwt = JWTManager(app)
