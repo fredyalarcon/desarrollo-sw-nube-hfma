@@ -9,7 +9,7 @@ class Usuario(db.Model):
     password = db.Column(db.String(150), nullable=False)
     email = db.Column(db.String(150), nullable=False)
     tasks = db.relationship('Task', cascade='all, delete, delete-orphan')
-    __table_args__ = (db.UniqueConstraint('username', name='username_unique'),)
+    __table_args__ = (db.UniqueConstraint('username', name='username_unique'),db.UniqueConstraint('email', name='email_unique'))
 
 
 class UsuarioSchema(SQLAlchemyAutoSchema):
