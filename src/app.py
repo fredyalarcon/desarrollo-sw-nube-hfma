@@ -9,7 +9,7 @@ import datetime
 from modelos import db
 
 from vistas import \
-    VistaTasks
+    VistaTasks, VistaTask
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:mysql@localhost/converter'
@@ -37,4 +37,5 @@ cors = CORS(app)
 
 api = Api(app)
 api.add_resource(VistaTasks, '/tasks')
+api.add_resource(VistaTask, '/task/<int:id_task>')
 jwt = JWTManager(app)
