@@ -1,6 +1,6 @@
 from marshmallow import fields
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
-from modelos import db
+from .modelos import db
 
 class Usuario(db.Model):
     __tablename__ = "usuario"

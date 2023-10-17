@@ -2,9 +2,11 @@ from flask_jwt_extended import jwt_required, create_access_token
 from flask_restful import Resource
 from sqlalchemy import func
 from flask import jsonify, request
-import datetime
+from datetime import datetime
+import pika 
+import json
 
-from modelos import Task, TaskSchema
+from api.modelos import db, Task, TaskSchema
 
 task_schema = TaskSchema()
 
@@ -39,6 +41,40 @@ class VistaTasks(Resource):
                     tasks = Task.query.order_by(Task.id.desc()).limit(max)
                     
         return [task_schema.dump(task) for task in tasks]
+    
+    def post(self):
+        connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+        channel = connection.channel()
+        channel.exchange_declare(
+            exchange='task',
+            exchange_type='topic'
+        )
+        #json data
+        data = request.get_json()
+        id_task = data['id_task']
+        task = Task(id=id_task, 
+                          state='uploaded', 
+                          input_name_file='', 
+                          output_name_file='', 
+                          created_at=datetime.now(),
+                          usuario_id=1
+                          )
+        db.session.add(task)
+        db.session.commit()
+
+        # send event
+        message = {
+            'id_task': id_task
+        }
+        channel.basic_publish(
+            exchange='task',
+            routing_key='task.process',
+            body=json.dumps(message)
+        )
+        print(' [x] Sent notify message')
+        connection.close()
+
+        return 'OK'
 
 class VistaTask(Resource):
     @jwt_required()

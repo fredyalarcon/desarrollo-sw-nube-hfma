@@ -1,20 +1,16 @@
-from flask import Flask
+from api import create_app
 from flask_marshmallow import Marshmallow
 from flask_cors import CORS
 from flask_restful import Api
 from flask_jwt_extended import JWTManager
-from modelos import db
+from .modelos import db
 
-from vistas import \
+from .vistas import \
     VistaTasks, VistaTask, \
     VistaTaskUser, VistaGenerarToken
 
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:mysql@localhost/converter'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['JWT_SECRET_KEY'] = 'frase-secreta'
-app.config['PROPAGATE_EXCEPTIONS'] = True
 
+app = create_app('default_api')
 app_context = app.app_context()
 app_context.push()
 
