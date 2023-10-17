@@ -6,4 +6,4 @@ docker run --name mysqldb -v mysqldbvol:/var/lib/mysql -p 3308:3306 -e MYSQL_USE
 
 ## RabbitMQ
 
-docker run -it --hostname my-rabbit --net mynetwork -p 15672:15672 -p 5672:5672 rabbitmq:3-management
+docker run -it --hostname my-rabbit -p 15672:15672 -p 5672:5672 rabbitmq:3-management

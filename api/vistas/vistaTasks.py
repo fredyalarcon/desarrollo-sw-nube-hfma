@@ -2,7 +2,7 @@ from flask_jwt_extended import jwt_required, create_access_token
 from flask_restful import Resource
 from sqlalchemy import func
 from flask import jsonify, request
-from datetime import datetime
+from datetime import datetime, timedelta
 import pika 
 import json
 
@@ -13,7 +13,7 @@ task_schema = TaskSchema()
 class VistaGenerarToken(Resource):
     def get(self):
         # Crea un token con información de usuario y tiempo de expiración
-        expires = datetime.timedelta(minutes=30)
+        expires = timedelta(minutes=30)
         access_token = create_access_token(identity='frase-secreta', expires_delta=expires)
         
         return jsonify(access_token=access_token)
@@ -42,6 +42,7 @@ class VistaTasks(Resource):
                     
         return [task_schema.dump(task) for task in tasks]
     
+    @jwt_required()
     def post(self):
         connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
         channel = connection.channel()
