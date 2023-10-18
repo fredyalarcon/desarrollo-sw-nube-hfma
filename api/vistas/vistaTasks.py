@@ -50,12 +50,13 @@ class VistaTasks(Resource):
             exchange='task',
             exchange_type='topic'
         )
-        #json data
-        data = request.get_json()
-        id_task = data['id_task']
+        #files
+        data = request.files['fileName']
+        id_task = request.form['id_task']
+        file_name = data.filename
         task = Task(id=id_task, 
                           state='uploaded', 
-                          input_name_file='', 
+                          input_name_file=file_name, 
                           output_name_file='', 
                           created_at=datetime.now(),
                           usuario_id=1
