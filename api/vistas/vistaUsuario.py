@@ -66,6 +66,6 @@ class VistaLogin(Resource):
         if  (usuario):
             expires = timedelta(minutes=30)
             access_token = create_access_token(identity='frase-secreta', expires_delta=expires)
-            return jsonify(access_token=access_token)
+            return jsonify(access_token=access_token)   
         else:
             return {'mensaje':'Nombre de usuario o contraseña incorrectos'}, 402

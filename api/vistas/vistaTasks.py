@@ -52,11 +52,13 @@ class VistaTasks(Resource):
         )
         #json data
         data = request.get_json()
-        id_task = data['id_task']
-        task = Task(id=id_task, 
-                          state='uploaded', 
-                          input_name_file='', 
+        file = data['file']
+        format = data['format']
+        
+        task = Task(state='uploaded', 
+                          input_name_file=file, 
                           output_name_file='', 
+                          format_output_name_file=format,
                           created_at=datetime.now(),
                           usuario_id=1
                           )
@@ -65,7 +67,7 @@ class VistaTasks(Resource):
 
         # send event
         message = {
-            'id_task': id_task
+            'id_task': task.id
         }
         channel.basic_publish(
             exchange='task',

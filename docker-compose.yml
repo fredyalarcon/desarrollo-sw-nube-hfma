@@ -1,0 +1,56 @@
+version: "3.8"
+   
+services:
+  api:
+    build: ./api
+    command: python3 -m flask run --host=0.0.0.0
+    volumes:
+      - /home/hmaury/Documents/converter
+    environment:
+      DB_HOST: "db"
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+      - rabbit
+    links:
+      - db
+      - rabbit
+    networks:
+      - default
+
+  worker:
+    build: ./worker
+    command: python3 -m flask run --host=0.0.0.0
+    volumes:
+      - /home/hmaury/Documents/converter
+    environment:
+      DB_HOST: "db"
+    depends_on:
+      - db
+      - rabbit
+    links:
+      - db
+      - rabbit
+    networks:
+      - default
+
+  db:
+    image: 'mysql/mysql-server:latest'
+    restart: always
+    volumes:
+      - './mysql_data:/var/lib/mysql'
+    environment:
+     - MYSQL_DATABASE=converter
+     - MYSQL_ROOT_PASSWORD=Sup3rs3cr3t
+     - MYSQL_USER=root
+     - MYSQL_PASSWORD=mysql
+    ports:
+    - '3306:3308'
+
+  rabbit:
+    image: rabbitmq:3-management
+    restart: always
+    ports:
+    - '15672:15672'
+    - '5672:5672'
