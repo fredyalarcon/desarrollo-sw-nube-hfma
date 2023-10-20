@@ -8,8 +8,7 @@ from .modelos import db
 from .vistas import \
     VistaTasks, VistaTask, \
     VistaSignup, VistaLogin, \
-    VistaTaskUser, VistaGenerarToken
-
+    VistaTaskUser, VistaDescarga
 
 app = create_app('default_api')
 app_context = app.app_context()
@@ -24,7 +23,7 @@ cors = CORS(app)
 api = Api(app)
 api.add_resource(VistaSignup, '/signup')
 api.add_resource(VistaLogin, '/login')
-api.add_resource(VistaGenerarToken, '/generar_token')
+api.add_resource(VistaDescarga, '/downloadfile/<int:id_task>')
 api.add_resource(VistaTasks, '/tasks')
 api.add_resource(VistaTask, '/task/<int:id_task>')
 api.add_resource(VistaTaskUser, '/tasks/usuario/<int:usuario_id>')

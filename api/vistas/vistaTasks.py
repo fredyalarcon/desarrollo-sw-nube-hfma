@@ -1,7 +1,7 @@
-from flask_jwt_extended import jwt_required, create_access_token
+from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
 from flask_restful import Resource
 from sqlalchemy import func
-from flask import jsonify, request
+from flask import jsonify, request, send_from_directory
 from datetime import datetime, timedelta
 import pika 
 import json
@@ -13,43 +13,50 @@ task_schema = TaskSchema()
 
 rabbit_host = os.environ.get("RABBIT_HOST") or 'localhost'
 
-UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER')
+UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER') or "../converter_data/in"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-class VistaGenerarToken(Resource):
-    def get(self):
-        # Crea un token con información de usuario y tiempo de expiración
-        expires = timedelta(minutes=30)
-        access_token = create_access_token(identity='frase-secreta', expires_delta=expires)
-        
-        return jsonify(access_token=access_token)
+DOWNLOAD_FOLDER = os.getenv('DOWNLOAD_FOLDER')  or "../converter_data/out"
+os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
+
+class VistaDescarga(Resource):
+    @jwt_required()
+    def get(self, id_task):
+        task = Task.query.get_or_404(id_task)
+        return send_from_directory(DOWNLOAD_FOLDER, task.output_name_file, as_attachment=True)
 
 class VistaTasks(Resource):
     @jwt_required()
     def get(self):
+        current_user_id = get_jwt_identity()
         max = request.args.get('max', default=0)
         order = request.args.get('order', default=0)
         order = int(order)
         #ordenar ascendente
         if order == 0:
             if max == 0:
-                tasks = Task.query.order_by(Task.id)
+                tasks = Task.query.filter_by(usuario_id=str(current_user_id)).order_by(Task.id)
+                #tasks = Task.query.order_by(Task.id)
             else:
                 max = int(max)
-                tasks = Task.query.order_by(Task.id).limit(max)
+                #tasks = Task.query.order_by(Task.id).limit(max)
+                tasks = Task.query.filter_by(usuario_id=str(current_user_id)).order_by(Task.id).limit(max)
         else:
             #ordenar descendente
             if order ==1:
                 if max == 0:
-                    tasks = Task.query.order_by(Task.id.desc())
+                    tasks = Task.query.filter_by(usuario_id=str(current_user_id)).order_by(Task.id.desc())
+                    #tasks = Task.query.order_by(Task.id.desc())
                 else:
                     max = int(max)
-                    tasks = Task.query.order_by(Task.id.desc()).limit(max)
+                    tasks = Task.query.filter_by(usuario_id=str(current_user_id)).order_by(Task.id.desc()).limit(max)
+                    #tasks = Task.query.order_by(Task.id.desc()).limit(max)
                     
         return [task_schema.dump(task) for task in tasks]
     
     @jwt_required()
     def post(self):
+        current_user_id = get_jwt_identity()
         connection = pika.BlockingConnection(pika.ConnectionParameters(rabbit_host))
         channel = connection.channel()
         channel.exchange_declare(
@@ -72,7 +79,7 @@ class VistaTasks(Resource):
                           output_name_file='', 
                           format_output_name_file=new_format,
                           created_at=datetime.now(),
-                          usuario_id=1
+                          usuario_id=current_user_id
                           )
         db.session.add(task)
         db.session.commit()

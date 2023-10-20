@@ -62,10 +62,10 @@ class VistaLogin(Resource):
         # Crea un token con información de usuario y tiempo de expiración
         userName = request.json["username"]
         password = request.json["password"]
-        usuario = Usuario.query.filter_by(username=userName, password=password).all()
+        usuario = Usuario.query.filter_by(username=userName, password=password).first()
         if  (usuario):
             expires = timedelta(minutes=30)
-            access_token = create_access_token(identity='frase-secreta', expires_delta=expires)
+            access_token = create_access_token(identity=str(usuario.id), expires_delta=expires)
             return jsonify(access_token=access_token)   
         else:
             return {'mensaje':'Nombre de usuario o contraseña incorrectos'}, 402

@@ -20,10 +20,10 @@ api = Api(app)
 
 rabbit_host = os.environ.get("RABBIT_HOST") or 'localhost'
 
-UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER')
+UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER')  or "../converter_data/in"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-DOWNLOAD_FOLDER = os.getenv('DOWNLOAD_FOLDER')
+DOWNLOAD_FOLDER = os.getenv('DOWNLOAD_FOLDER')  or "../converter_data/out"
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
 connection = pika.BlockingConnection(pika.ConnectionParameters(rabbit_host))
@@ -49,11 +49,13 @@ def convertFile(file_name, format):
     """
     conv = Converter()
 
+    redondeo_timestamp = int(round(datetime.now().timestamp()))
 
-    input_name_file = '{}/{}'.format(UPLOAD_FOLDER, file_name)
-    output_name_file = '{}/{}{}.{}'.format(DOWNLOAD_FOLDER, file_name.split('.')[0], datetime.now().timestamp(), format) 
+    output_file_name = '{}{}.{}'.format(file_name.split('.')[0], redondeo_timestamp, format)
+    input_path_file = '{}/{}'.format(UPLOAD_FOLDER, file_name)
+    output_path_file = '{}/{}'.format(DOWNLOAD_FOLDER, output_file_name) 
    
-    convert = conv.convert(input_name_file, output_name_file, {
+    convert = conv.convert(input_path_file, output_path_file, {
         'format': format,
         'audio': {
             'codec': 'mp3',
@@ -71,7 +73,7 @@ def convertFile(file_name, format):
     for timecode in convert:
         print(f'\rConverting ({timecode:.2f}) ...')
 
-    return output_name_file
+    return output_file_name
 
 def callback(ch, method, properties, body):
     # Process message:
