@@ -46,6 +46,7 @@ class VistaTasks(Resource):
     
     @jwt_required()
     def post(self):
+
         connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
         channel = connection.channel()
         channel.exchange_declare(
@@ -55,13 +56,21 @@ class VistaTasks(Resource):
         #files
         file = request.files['fileName']
         file_name = file.filename
-        file.save(os.path.join(os.getenv('UPLOAD_FILE'), file_name ))
-        input_name_file = f"{os.getenv('UPLOAD_FILE')}{file_name}"
-        task = Task(id=id_task, 
+        # Guarda el archivo en una carpeta, la ruta depende de la variable de entorno
+        file.save(os.path.join( os.getenv('UPLOAD_FOLDER'), file_name ))
+        #Ruta completa
+        input_name_file = f"{str(os.getenv('UPLOAD_FOLDER'))}{file_name}"
+
+        
+        new_format = request.form["newFormat"]
+        valid_format = ('ogg', 'avi', 'mkv', 'webm', 'flv', 'mov', 'mp4', 'mpg')
+        if not valid_format.__contains__(new_format):
+            return "El convertidor solo puede convertir a 'ogg', 'avi', 'mkv', 'webm', 'flv', 'mov', 'mp4', 'mpg', revisa el param newFormat"
+        task = Task( 
                           state='uploaded', 
                           input_name_file=input_name_file, 
                           output_name_file='', 
-                          format_output_name_file=format,
+                          format_output_name_file=new_format,
                           created_at=datetime.now(),
                           usuario_id=1
                           )
@@ -80,7 +89,7 @@ class VistaTasks(Resource):
         print(' [x] Sent notify message')
         connection.close()
 
-        return 'OK'
+        return f'Se ha lanzado una nueva tarea de conversion, revisa el status de tu tarea:{task.id}'
 
 class VistaTask(Resource):
     @jwt_required()
