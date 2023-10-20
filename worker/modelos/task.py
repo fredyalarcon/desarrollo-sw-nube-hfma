@@ -9,7 +9,9 @@ class Task(db.Model):
     state = db.Column(Enum('processed', 'uploaded', name='state'), nullable=False)
     input_name_file = db.Column(db.String(128), nullable=False)
     output_name_file = db.Column(db.String(128))
+    format_output_name_file = db.Column(Enum('ogg', 'avi', 'mkv', 'webm', 'flv', 'mov', 'mp4', 'mpg', name='format'), nullable=False)
     created_at = db.Column(db.TIMESTAMP, server_default=func.now(), nullable=False)
+    processed_at = db.Column(db.TIMESTAMP)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
 
     __mapper_args__ = {

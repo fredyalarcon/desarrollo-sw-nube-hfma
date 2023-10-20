@@ -5,6 +5,8 @@ from flask import jsonify, request
 from datetime import datetime, timedelta
 import pika 
 import json
+import os
+
 
 from api.modelos import db, Task, TaskSchema
 
@@ -51,13 +53,15 @@ class VistaTasks(Resource):
             exchange_type='topic'
         )
         #files
-        data = request.files['fileName']
-        id_task = request.form['id_task']
-        file_name = data.filename
+        file = request.files['fileName']
+        file_name = file.filename
+        file.save(os.path.join(os.getenv('UPLOAD_FILE'), file_name ))
+        input_name_file = f"{os.getenv('UPLOAD_FILE')}{file_name}"
         task = Task(id=id_task, 
                           state='uploaded', 
-                          input_name_file=file_name, 
+                          input_name_file=input_name_file, 
                           output_name_file='', 
+                          format_output_name_file=format,
                           created_at=datetime.now(),
                           usuario_id=1
                           )
@@ -66,7 +70,7 @@ class VistaTasks(Resource):
 
         # send event
         message = {
-            'id_task': id_task
+            'id_task': task.id
         }
         channel.basic_publish(
             exchange='task',

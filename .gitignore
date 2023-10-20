@@ -145,3 +145,4 @@ cython_debug/
 
 #DataBase
 converter.sql
+mysql_data
