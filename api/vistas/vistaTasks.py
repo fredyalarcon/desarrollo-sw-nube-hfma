@@ -7,10 +7,14 @@ import pika
 import json
 import os
 
-
 from api.modelos import db, Task, TaskSchema
 
 task_schema = TaskSchema()
+
+rabbit_host = os.environ.get("RABBIT_HOST") or 'localhost'
+
+UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 class VistaGenerarToken(Resource):
     def get(self):
@@ -46,8 +50,7 @@ class VistaTasks(Resource):
     
     @jwt_required()
     def post(self):
-
-        connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+        connection = pika.BlockingConnection(pika.ConnectionParameters(rabbit_host))
         channel = connection.channel()
         channel.exchange_declare(
             exchange='task',
@@ -57,10 +60,7 @@ class VistaTasks(Resource):
         file = request.files['fileName']
         file_name = file.filename
         # Guarda el archivo en una carpeta, la ruta depende de la variable de entorno
-        file.save(os.path.join( os.getenv('UPLOAD_FOLDER'), file_name ))
-        #Ruta completa
-        input_name_file = f"{str(os.getenv('UPLOAD_FOLDER'))}{file_name}"
-
+        file.save(os.path.join(UPLOAD_FOLDER, file_name ))
         
         new_format = request.form["newFormat"]
         valid_format = ('ogg', 'avi', 'mkv', 'webm', 'flv', 'mov', 'mp4', 'mpg')
@@ -68,7 +68,7 @@ class VistaTasks(Resource):
             return "El convertidor solo puede convertir a 'ogg', 'avi', 'mkv', 'webm', 'flv', 'mov', 'mp4', 'mpg', revisa el param newFormat"
         task = Task( 
                           state='uploaded', 
-                          input_name_file=input_name_file, 
+                          input_name_file=file_name, 
                           output_name_file='', 
                           format_output_name_file=new_format,
                           created_at=datetime.now(),

@@ -5,14 +5,15 @@ services:
     build: ./api
     command: python3 -m flask run --host=0.0.0.0
     volumes:
-      - /home/hmaury/Documents/converter
+      - './converter_data:/usr/src/converter'
     environment:
       DB_HOST: "db"
+      RABBIT_HOST: "rabbit"
+      UPLOAD_FOLDER: "/usr/src/converter/in"
     ports:
       - "5000:5000"
     depends_on:
       - db
-      - rabbit
     links:
       - db
       - rabbit
@@ -23,12 +24,15 @@ services:
     build: ./worker
     command: python3 -m flask run --host=0.0.0.0
     volumes:
-      - /home/hmaury/Documents/converter
+      - './converter_data:/usr/src/converter'
     environment:
       DB_HOST: "db"
+      RABBIT_HOST: "rabbit"
+      UPLOAD_FOLDER: "/usr/src/converter/in"
+      DOWNLOAD_FOLDER: "/usr/src/converter/out"
     depends_on:
-      - db
-      - rabbit
+      rabbit:
+          condition: service_healthy
     links:
       - db
       - rabbit
@@ -37,7 +41,6 @@ services:
 
   db:
     image: 'mysql/mysql-server:latest'
-    restart: always
     volumes:
       - './mysql_data:/var/lib/mysql'
     environment:
@@ -46,11 +49,15 @@ services:
      - MYSQL_USER=root
      - MYSQL_PASSWORD=mysql
     ports:
-    - '3306:3308'
+    - '3306:3306'
 
   rabbit:
     image: rabbitmq:3-management
-    restart: always
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 10s
+      retries: 3
     ports:
     - '15672:15672'
     - '5672:5672'

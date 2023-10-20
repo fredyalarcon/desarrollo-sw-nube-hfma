@@ -147,6 +147,5 @@ cython_debug/
 converter.sql
 mysql_data
 
-
-#upload
-static
+#appData
+converter_data

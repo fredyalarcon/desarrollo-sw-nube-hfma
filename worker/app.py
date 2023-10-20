@@ -4,6 +4,8 @@ import json
 import pika 
 from converter import Converter
 from datetime import datetime
+import os
+import time
 
 from .modelos import db, Task
 
@@ -16,7 +18,15 @@ db.create_all()
 
 api = Api(app)
 
-connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+rabbit_host = os.environ.get("RABBIT_HOST") or 'localhost'
+
+UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+DOWNLOAD_FOLDER = os.getenv('DOWNLOAD_FOLDER')
+os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
+
+connection = pika.BlockingConnection(pika.ConnectionParameters(rabbit_host))
 channel = connection.channel()
 
 queue = channel.queue_declare('task_process')
@@ -39,8 +49,9 @@ def convertFile(file_name, format):
     """
     conv = Converter()
 
-    input_name_file = '/home/hmaury/Documents/converter/in/' + file_name
-    output_name_file = '/home/hmaury/Documents/converter/out/{}{}.{}'.format(file_name.split('.')[0], datetime.now().timestamp(), format) 
+
+    input_name_file = '{}/{}'.format(UPLOAD_FOLDER, file_name)
+    output_name_file = '{}/{}{}.{}'.format(DOWNLOAD_FOLDER, file_name.split('.')[0], datetime.now().timestamp(), format) 
    
     convert = conv.convert(input_name_file, output_name_file, {
         'format': format,
@@ -68,6 +79,7 @@ def callback(ch, method, properties, body):
     id_task = payload['id_task']
     print(' [x] Processing {}, '.format(id_task))
 
+    time.sleep(1)
     task = Task.query.get_or_404(id_task)
 
     if task.state == 'uploaded':
