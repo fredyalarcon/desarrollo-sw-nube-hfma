@@ -109,17 +109,17 @@ class VistaTask(Resource):
         try:
             if(task.state == 'uploaded'):
                 archivoUpload = os.path.join(UPLOAD_FOLDER, task.input_name_file)
-                os.remove(archivoUpload)
+                # os.remove(archivoUpload)
             else:
                 archivoUpload = os.path.join(UPLOAD_FOLDER, task.input_name_file)
-                os.remove(archivoUpload)
+                # os.remove(archivoUpload)
                 archivoDownload = os.path.join(DOWNLOAD_FOLDER, task.output_name_file)
-                os.remove(archivoDownload)
+                # os.remove(archivoDownload)
         except OSError:
             return 'Error al eliminar archivo',405
         db.session.delete(task)
         db.session.commit()
-        return f'Se ha eliminardo correctamente la tarea: {id_task}'
+        return f'Se ha eliminado correctamente la tarea: {id_task}'
     
 class VistaTaskUser(Resource):
     @jwt_required()
