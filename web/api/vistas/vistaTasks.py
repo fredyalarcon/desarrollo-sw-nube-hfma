@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import pika 
 import json
 import os
+import shutil
 
 from api.modelos import db, Task, TaskSchema
 
@@ -13,17 +14,11 @@ task_schema = TaskSchema()
 
 rabbit_host = os.environ.get("RABBIT_HOST") or 'localhost'
 
-UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER') or "../converter_data/in"
+UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER') or "../../converter_data/in"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-DOWNLOAD_FOLDER = os.getenv('DOWNLOAD_FOLDER')  or "../converter_data/out"
+DOWNLOAD_FOLDER = os.getenv('DOWNLOAD_FOLDER')  or "../../converter_data/out"
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
-
-class VistaDescarga(Resource):
-    @jwt_required()
-    def get(self, id_task):
-        task = Task.query.get_or_404(id_task)
-        return send_from_directory(DOWNLOAD_FOLDER, task.output_name_file, as_attachment=True)
 
 class VistaTasks(Resource):
     @jwt_required()
@@ -126,3 +121,12 @@ class VistaTaskUser(Resource):
     def get(self, usuario_id):
         tasks = Task.query.filter_by(usuario_id=str(usuario_id)).order_by(func.lower(Task.created_at).asc()).all()
         return [task_schema.dump(task) for task in tasks]
+
+class VistaDescarga(Resource):
+    def get(self, id_task):
+        # directory = os.getcwd()
+        # return directory, 200
+        task = Task.query.get_or_404(id_task)
+        shutil.copy('{}/{}'.format(DOWNLOAD_FOLDER, task.output_name_file), './static')
+        print(' [x] Downloading file {}'.format(task.output_name_file))
+        return send_from_directory('./static', task.output_name_file, as_attachment=True)
