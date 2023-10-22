@@ -17,8 +17,13 @@ rabbit_host = os.environ.get("RABBIT_HOST") or 'localhost'
 UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER') or "../../converter_data/in"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-DOWNLOAD_FOLDER = os.getenv('DOWNLOAD_FOLDER')  or "../../converter_data/out"
+DOWNLOAD_FOLDER = os.getenv('DOWNLOAD_FOLDER') or "../../converter_data/out"
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
+
+STATIC_FOLDER = './static'
+
+if os.getenv('DOWNLOAD_FOLDER') is not None: 
+    STATIC_FOLDER = os.getcwd() + '/api/static'
 
 class VistaTasks(Resource):
     @jwt_required()
@@ -124,9 +129,7 @@ class VistaTaskUser(Resource):
 
 class VistaDescarga(Resource):
     def get(self, id_task):
-        # directory = os.getcwd()
-        # return directory, 200
         task = Task.query.get_or_404(id_task)
-        shutil.copy('{}/{}'.format(DOWNLOAD_FOLDER, task.output_name_file), './static')
+        shutil.copy('{}/{}'.format(DOWNLOAD_FOLDER, task.output_name_file),  STATIC_FOLDER)
         print(' [x] Downloading file {}'.format(task.output_name_file))
-        return send_from_directory('./static', task.output_name_file, as_attachment=True)
+        return send_from_directory(STATIC_FOLDER, task.output_name_file, as_attachment=True)
