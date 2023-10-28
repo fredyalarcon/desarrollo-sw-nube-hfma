@@ -57,7 +57,13 @@ class VistaTasks(Resource):
     @jwt_required()
     def post(self):
         current_user_id = get_jwt_identity()
-        connection = pika.BlockingConnection(pika.ConnectionParameters(rabbit_host))
+        credentials = pika.PlainCredentials('rabbit', 'rabbit')
+        parameters = pika.ConnectionParameters(rabbit_host,
+                                        5672,
+                                        '/',
+                                        credentials)
+
+        connection = pika.BlockingConnection(parameters)
         channel = connection.channel()
         channel.exchange_declare(
             exchange='task',

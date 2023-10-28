@@ -26,7 +26,13 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 DOWNLOAD_FOLDER = os.getenv('DOWNLOAD_FOLDER')  or "../converter_data/out"
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
-connection = pika.BlockingConnection(pika.ConnectionParameters(rabbit_host))
+credentials = pika.PlainCredentials('rabbit', 'rabbit')
+parameters = pika.ConnectionParameters(rabbit_host,
+                                   5672,
+                                   '/',
+                                   credentials)
+
+connection = pika.BlockingConnection(parameters)
 channel = connection.channel()
 
 queue = channel.queue_declare('task_process')
@@ -85,11 +91,11 @@ def callback(ch, method, properties, body):
     task = Task.query.get_or_404(id_task)
 
     if task.state == 'uploaded':
-        # try:
-        task.output_name_file = convertFile(task.input_name_file, task.format_output_name_file.lower())
-        task.processed_at = datetime.now()
-        # except:
-        #     print(" [x] An exception occurred")
+        try:
+            task.output_name_file = convertFile(task.input_name_file, task.format_output_name_file.lower())
+            task.processed_at = datetime.now()
+        except:
+            print(" [x] An exception occurred")
 
         task.state = 'processed'
         db.session.commit()
