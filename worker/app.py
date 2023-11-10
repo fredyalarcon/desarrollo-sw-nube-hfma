@@ -18,7 +18,7 @@ db.create_all()
 
 api = Api(app)
 
-rabbit_host = os.environ.get("RABBIT_HOST") or 'localhost'
+rabbit_host = os.environ.get("RABBIT_HOST") or '10.128.0.4'
 
 UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER')  or "../converter_data/in"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
