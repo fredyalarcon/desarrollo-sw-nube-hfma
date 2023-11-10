@@ -7,7 +7,7 @@ import pika
 import json
 import os
 import shutil
-
+from google.cloud import storage
 from api.modelos import db, Task, TaskSchema
 
 task_schema = TaskSchema()
@@ -20,10 +20,14 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 DOWNLOAD_FOLDER = os.getenv('DOWNLOAD_FOLDER') or "../../converter_data/out"
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
+
+
 STATIC_FOLDER = './static'
 
 if os.getenv('DOWNLOAD_FOLDER') is not None: 
     STATIC_FOLDER = os.getcwd() + '/api/static'
+
+
 
 class VistaTasks(Resource):
     @jwt_required()
@@ -67,8 +71,10 @@ class VistaTasks(Resource):
         file = request.files['fileName']
         file_name = file.filename
         # Guarda el archivo en una carpeta, la ruta depende de la variable de entorno
-        file.save(os.path.join(UPLOAD_FOLDER, file_name ))
-        
+        storage_client = storage.Client.from_service_account_json('path/to/credentials.json')
+        bucket = storage_client.get_bucket('desarrollo-sw-nube-hfma')
+        folder_blod = bucket.blob(f'convert_data/in/{file_name}')
+        folder_blod.upload_from_file(file)
         new_format = request.form["newFormat"]
         valid_format = ('ogg', 'avi', 'mkv', 'webm', 'flv', 'mov', 'mp4', 'mpg')
         if not valid_format.__contains__(new_format):
