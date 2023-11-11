@@ -7,7 +7,6 @@ from google.cloud import storage
 import pika
 import json
 import os
-import shutil
 
 from api.modelos import db, Task, TaskSchema
 
@@ -21,8 +20,7 @@ os.environ[
     "GOOGLE_APPLICATION_CREDENTIALS"
 ] = "./static/api-converter-403621-891683842aca.json"
 
-if os.getenv('DOWNLOAD_FOLDER') is not None: 
-    STATIC_FOLDER = os.getcwd() + '/api/static'
+STATIC_FOLDER = './static'
 
 def upload_blob(bucket_name, file, destination_blob_name):
     """Uploads a file to the bucket."""
@@ -47,7 +45,7 @@ def download_blob(bucket_name, blob_name, destination_file_name) :
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.get_blob(blob_name)
-    blob.download_to_filename(destination_file_name)
+    blob.download_to_filename('videos/out/{}'.format(destination_file_name))
     print(f"File {blob_name} downloaded.")
 
 
@@ -64,10 +62,8 @@ class VistaTasks(Resource):
                 tasks = Task.query.filter_by(usuario_id=str(current_user_id)).order_by(
                     Task.id
                 )
-                # tasks = Task.query.order_by(Task.id)
             else:
                 max = int(max)
-                # tasks = Task.query.order_by(Task.id).limit(max)
                 tasks = (
                     Task.query.filter_by(usuario_id=str(current_user_id))
                     .order_by(Task.id)
@@ -80,7 +76,6 @@ class VistaTasks(Resource):
                     tasks = Task.query.filter_by(
                         usuario_id=str(current_user_id)
                     ).order_by(Task.id.desc())
-                    # tasks = Task.query.order_by(Task.id.desc())
                 else:
                     max = int(max)
                     tasks = (
@@ -88,7 +83,6 @@ class VistaTasks(Resource):
                         .order_by(Task.id.desc())
                         .limit(max)
                     )
-                    # tasks = Task.query.order_by(Task.id.desc()).limit(max)
 
         return [task_schema.dump(task) for task in tasks]
 
@@ -144,9 +138,9 @@ class VistaTask(Resource):
     def delete(self, id_task):
         task = Task.query.get_or_404(id_task)
         try:
-            delete_blob(task.input_name_file)
+            delete_blob(bucket_name, 'videos/in/{}'.format(task.input_name_file))
             if task.state == "processed":
-                delete_blob(task.output_name_file)
+                delete_blob(bucket_name, 'videos/out/{}'.format(task.output_name_file))
 
         except OSError:
             return "Error al eliminar archivo", 405
@@ -169,7 +163,7 @@ class VistaTaskUser(Resource):
 class VistaDescarga(Resource):
     def get(self, id_task):
         task = Task.query.get_or_404(id_task)
-        download_blob(task.output_name_file, STATIC_FOLDER)
+        download_blob(bucket_name, task.output_name_file, STATIC_FOLDER)
         print(" [x] Downloading file {}".format(task.output_name_file))
         return send_from_directory(
             STATIC_FOLDER, task.output_name_file, as_attachment=True
