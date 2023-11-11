@@ -15,43 +15,31 @@ task_schema = TaskSchema()
 
 rabbit_host = os.environ.get("RABBIT_HOST") or "10.128.0.4"
 
-UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER") or "../../converter_data/in"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-DOWNLOAD_FOLDER = os.getenv("DOWNLOAD_FOLDER") or "../../converter_data/out"
-os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
-
-STATIC_FOLDER = "./static"
-
-if os.getenv("DOWNLOAD_FOLDER") is not None:
-    STATIC_FOLDER = os.getcwd() + "/api/static"
-
 bucket_name = "bucket-web-api-converter"
 # Usamos barras diagonales dobles o barras diagonales normales para definir la ruta del archivo JSON
 os.environ[
     "GOOGLE_APPLICATION_CREDENTIALS"
 ] = "./static/api-converter-403621-891683842aca.json"
 
+# esto debe ser remplazado por el bucket:
+UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER') or "../../converter_data/in"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+DOWNLOAD_FOLDER = os.getenv('DOWNLOAD_FOLDER') or "../../converter_data/out"
+os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
+STATIC_FOLDER = './static'
 
-def upload_blob(bucket_name, source_file_name, destination_blob_name):
+if os.getenv('DOWNLOAD_FOLDER') is not None: 
+    STATIC_FOLDER = os.getcwd() + '/api/static'
+
+def upload_blob(bucket_name, file, destination_blob_name):
     """Uploads a file to the bucket."""
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(destination_blob_name)
+    blob = bucket.blob('videos/in/{}'.format(destination_blob_name))
 
-    # Optional: set a generation-match precondition to avoid potential race conditions
-    # and data corruptions. The request to upload is aborted if the object's
-    # generation number does not match your precondition. For a destination
-    # object that does not yet exist, set the if_generation_match precondition to 0.
-    # If the destination object already exists in your bucket, set instead a
-    # generation-match precondition using its generation number.
-    generation_match_precondition = 0
-
-    blob.upload_from_filename(
-        source_file_name, if_generation_match=generation_match_precondition
-    )
-
-    print(f"File {source_file_name} uploaded to {destination_blob_name}.")
+    blob.upload_from_string(file.read(), content_type=file.content_type)
+   
+    print(f"File {file.filename} uploaded to {destination_blob_name}.")
 
 
 class VistaTasks(Resource):
@@ -100,19 +88,16 @@ class VistaTasks(Resource):
         current_user_id = get_jwt_identity()
         credentials = pika.PlainCredentials("rabbit", "rabbit")
         parameters = pika.ConnectionParameters(rabbit_host, 5672, "/", credentials)
-
         connection = pika.BlockingConnection(parameters)
         channel = connection.channel()
         channel.exchange_declare(exchange="task", exchange_type="topic")
         # files
         file = request.files["fileName"]
-        file_name = file.filename
-        # Guarda el archivo en una carpeta, la ruta depende de la variable de entorno
-        file.save(os.path.join(UPLOAD_FOLDER, file_name))
+        file_name = "{}-{}".format(int(round(datetime.now().timestamp())), file.filename)
         upload_blob(
             bucket_name,
-            "{}/{}".format(UPLOAD_FOLDER, file_name),
-            "{}-{}".format(int(round(datetime.now().timestamp())), file.filename),
+            file,
+            file_name,
         )
 
         new_format = request.form["newFormat"]
