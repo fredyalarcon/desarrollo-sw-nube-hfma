@@ -21,13 +21,6 @@ os.environ[
     "GOOGLE_APPLICATION_CREDENTIALS"
 ] = "./static/api-converter-403621-891683842aca.json"
 
-# esto debe ser remplazado por el bucket:
-UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER') or "../../converter_data/in"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-DOWNLOAD_FOLDER = os.getenv('DOWNLOAD_FOLDER') or "../../converter_data/out"
-os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
-STATIC_FOLDER = './static'
-
 if os.getenv('DOWNLOAD_FOLDER') is not None: 
     STATIC_FOLDER = os.getcwd() + '/api/static'
 
@@ -40,6 +33,22 @@ def upload_blob(bucket_name, file, destination_blob_name):
     blob.upload_from_string(file.read(), content_type=file.content_type)
    
     print(f"File {file.filename} uploaded to {destination_blob_name}.")
+
+def delete_blob(bucket_name, blob_name):
+    """Delete a file to the bucket."""
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.get_blob(blob_name)
+    blob.delete()
+    print(f"File {blob_name} deleted.")
+
+def download_blob(bucket_name, blob_name, destination_file_name) :
+    """Download a file to the bucket."""
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.get_blob(blob_name)
+    blob.download_to_filename(destination_file_name)
+    print(f"File {blob_name} downloaded.")
 
 
 class VistaTasks(Resource):
@@ -135,14 +144,10 @@ class VistaTask(Resource):
     def delete(self, id_task):
         task = Task.query.get_or_404(id_task)
         try:
-            if task.state == "uploaded":
-                archivoUpload = os.path.join(UPLOAD_FOLDER, task.input_name_file)
-                # os.remove(archivoUpload)
-            else:
-                archivoUpload = os.path.join(UPLOAD_FOLDER, task.input_name_file)
-                # os.remove(archivoUpload)
-                archivoDownload = os.path.join(DOWNLOAD_FOLDER, task.output_name_file)
-                # os.remove(archivoDownload)
+            delete_blob(task.input_name_file)
+            if task.state == "processed":
+                delete_blob(task.output_name_file)
+
         except OSError:
             return "Error al eliminar archivo", 405
         db.session.delete(task)
@@ -164,9 +169,7 @@ class VistaTaskUser(Resource):
 class VistaDescarga(Resource):
     def get(self, id_task):
         task = Task.query.get_or_404(id_task)
-        shutil.copy(
-            "{}/{}".format(DOWNLOAD_FOLDER, task.output_name_file), STATIC_FOLDER
-        )
+        download_blob(task.output_name_file, STATIC_FOLDER)
         print(" [x] Downloading file {}".format(task.output_name_file))
         return send_from_directory(
             STATIC_FOLDER, task.output_name_file, as_attachment=True
