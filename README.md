@@ -7,13 +7,72 @@
 - Andres Palma
 - Fredy Alarcon
 
-## Deployment 
+## Deployment GCP
+
+### Descripción 
+
+Este código continene los 2 microservicios del web api y el worker, a continuación, se describen los pasos para desplegarlo en GCP:
+
+### Pre requisitos
+- Configurar el cloud Storage creando un bucket llamada bucket-web-api-converter
+- Configurar Cloud SQL MySQL 8.0 con un usuario llamado ´mysql2´ y password ´mysql´ y conceder los permisos de lectura y escritura desde cualquier host.
+- Configurar los servicios RabbitMQ y agregar el usuario ´rabbit´ con el password ´rabbit´
+
+### Web - Api
+1. Cree una isntancia nueva de tipo e2 small con ubuntu 23.04.
+2. Inicie la máquina y establesca conexión ssh.
+3. Dentro de la máquina clone el repositorio en la ruta /var/
+4. ejecute los siguientes comandos
+- sudo apt update
+- sudo apt install python3-pip
+- cd desarrollo-sw-nube-hfma
+- sudo python3 -m venv venv
+- source venv/bin/activate
+- sudo pip install -r requirements.txt
+5. Generar el archivo con GOOGLE_APPLICATION_CREDENTIALS en el bucket storage y reemplazarlo en la carpeta /var/desarrollo-sw-nube-hfma/web/api/static/
+6. Creen una archivo llamado api-converter.sh en la siguiente ruta  /etc/init.d/ con el siguiente contenido reemplazando los valores de la BD y de RabbitMq por los correspondientes.
+#!/bin/sh
+export DB_HOST="<IP_DB_HOST_MYSQL>" &&
+export RABBIT_HOST="<IP_RABBIT_HOST>" &&
+cd /var/desarrollo-sw-nube-hfma &&
+source venv/bin/activate &&
+cd web/api &&
+flask run
+7. reiniciar la máquina, la aplicación debería iniciar el servicio de web-api al levantar el sistema operativo.
+
+### Worker
+1. Cree una isntancia nueva de tipo e2 small con ubuntu 23.04.
+2. Inicie la máquina y establesca conexión ssh.
+3. Dentro de la máquina clone el repositorio en la ruta /var/
+4. ejecute los siguientes comandos
+- sudo apt update
+- sudo apt install python3-pip
+- sudo apt-get -y update
+- sudo apt-get -y upgrade
+- sudo apt-get install -y ffmpeg
+- cd desarrollo-sw-nube-hfma
+- sudo python3 -m venv venv
+- source venv/bin/activate
+- sudo pip install -r requirements.txt
+5. Generar el archivo con GOOGLE_APPLICATION_CREDENTIALS en el bucket storage y reemplazarlo en la carpeta /var/desarrollo-sw-nube-hfma/web/api/static/
+6. Creen una archivo llamado api-converter.sh en la siguiente ruta  /etc/init.d/ con el siguiente contenido reemplazando los valores de la BD y de RabbitMq por los correspondientes.
+#!/bin/sh
+export DB_HOST="<IP_DB_HOST_MYSQL>" &&
+export RABBIT_HOST="<IP_RABBIT_HOST>" &&
+cd /var/desarrollo-sw-nube-hfma &&
+source venv/bin/activate &&
+cd worker &&
+flask run
+7. reiniciar la máquina, la aplicación debería iniciar el servicio de worker al levantar el sistema operativo.
+
+
+## Deployment Local
 
 Ejecute el siguiente comando en la terminar (debe tener instalado Docker y Docker-compose):
 
     `docker-compose -f docker-compose.yml up`
 
-## Notas: 
+### Notas: 
 
 - la instalacion puede demorar varios minutos. verifique que no hayan errorer durante la descarga, en caso de que esto suceda puede reintentar usando los siguiente comandos:
 
