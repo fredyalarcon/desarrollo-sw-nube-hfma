@@ -6,6 +6,7 @@ from converter import Converter
 from datetime import datetime
 import os
 import time
+from google.cloud import storage
 
 from .modelos import db, Task
 
@@ -18,15 +19,27 @@ db.create_all()
 
 api = Api(app)
 
-rabbit_host = os.environ.get("RABBIT_HOST") or 'localhost'
+STATIC_FOLDER = './static'
 
-UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER')  or "../converter_data/in"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs('{}/videos/in'.format(STATIC_FOLDER), exist_ok=True)
+os.makedirs('{}/videos/out'.format(STATIC_FOLDER), exist_ok=True)
 
-DOWNLOAD_FOLDER = os.getenv('DOWNLOAD_FOLDER')  or "../converter_data/out"
-os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
+bucket_name = "bucket-web-api-converter"
 
-connection = pika.BlockingConnection(pika.ConnectionParameters(rabbit_host))
+# Usamos barras diagonales dobles o barras diagonales normales para definir la ruta del archivo JSON
+os.environ[
+    "GOOGLE_APPLICATION_CREDENTIALS"
+] = "./static/api-converter-403621-891683842aca.json"
+
+
+rabbit_host = os.environ.get("RABBIT_HOST") or '10.128.0.4'
+
+credentials = pika.PlainCredentials('rabbit', 'rabbit')
+parameters = pika.ConnectionParameters(rabbit_host,
+                                   5672,
+                                   '/',
+                                   credentials)
+connection = pika.BlockingConnection(parameters)
 channel = connection.channel()
 
 queue = channel.queue_declare('task_process')
@@ -43,17 +56,46 @@ channel.queue_bind(
     routing_key='task.process' # binding key
 )
 
+def upload_blob(bucket_name, source_file_name, destination_blob_name):
+    """Uploads a file to the bucket."""
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob('videos/out/{}'.format(destination_blob_name))
+
+    # Optional: set a generation-match precondition to avoid potential race conditions
+    # and data corruptions. The request to upload is aborted if the object's
+    # generation number does not match your precondition. For a destination
+    # object that does not yet exist, set the if_generation_match precondition to 0.
+    # If the destination object already exists in your bucket, set instead a
+    # generation-match precondition using its generation number.
+    generation_match_precondition = 0
+
+    blob.upload_from_filename(source_file_name, if_generation_match=generation_match_precondition)
+
+    print(
+        f"File {source_file_name} uploaded to {destination_blob_name}."
+    )
+
+
+def download_blob(bucket_name, blob_name, destination_file_name) :
+    """Download a file to the bucket."""
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.get_blob('videos/in/{}'.format(blob_name))
+    blob.download_to_filename(destination_file_name)
+    print(f"File {blob_name} downloaded.")
+
 def convertFile(file_name, format):
     """
     Supported formats are: ogg, avi, mkv, webm, flv, mov, mp4, mpg
     """
     conv = Converter()
 
-    redondeo_timestamp = int(round(datetime.now().timestamp()))
+    input_path_file = '{}/videos/in/{}'.format(STATIC_FOLDER, file_name)
+    download_blob(bucket_name, file_name, input_path_file)
 
-    output_file_name = '{}{}.{}'.format(file_name.split('.')[0], redondeo_timestamp, format)
-    input_path_file = '{}/{}'.format(UPLOAD_FOLDER, file_name)
-    output_path_file = '{}/{}'.format(DOWNLOAD_FOLDER, output_file_name) 
+    output_file_name = '{}.{}'.format(file_name.split('.')[0], format)
+    output_path_file = '{}/videos/out/{}'.format(STATIC_FOLDER, output_file_name) 
    
     convert = conv.convert(input_path_file, output_path_file, {
         'format': format,
@@ -73,6 +115,12 @@ def convertFile(file_name, format):
     for timecode in convert:
         print(f'\rConverting ({timecode:.2f}) ...')
 
+    upload_blob(
+        bucket_name,
+        output_path_file,
+        output_file_name,
+    )
+
     return output_file_name
 
 def callback(ch, method, properties, body):
@@ -85,11 +133,11 @@ def callback(ch, method, properties, body):
     task = Task.query.get_or_404(id_task)
 
     if task.state == 'uploaded':
-        # try:
-        task.output_name_file = convertFile(task.input_name_file, task.format_output_name_file.lower())
-        task.processed_at = datetime.now()
-        # except:
-        #     print(" [x] An exception occurred")
+        try:
+            task.output_name_file = convertFile(task.input_name_file, task.format_output_name_file.lower())
+            task.processed_at = datetime.now()
+        except:
+            print(" [x] An exception occurred")
 
         task.state = 'processed'
         db.session.commit()

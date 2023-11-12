@@ -10,13 +10,14 @@ from .modelos import db
 from .vistas import \
     VistaTasks, VistaTask, \
     VistaSignup, VistaLogin, \
-    VistaTaskUser, VistaDescarga
+    VistaTaskUser, VistaDescarga, \
+    VistaHealthCheck
 
-db_host = os.environ.get("DB_HOST") or 'localhost'
+db_host = os.environ.get("DB_HOST") or '10.128.0.7'
 
 def create_app():
     app = Flask(__name__)
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:mysql@{}:3306/converter'.format(db_host)
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://mysql2:mysql@{}:3306/converter'.format(db_host)
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['JWT_SECRET_KEY'] = 'frase-secreta'
     app.config['PROPAGATE_EXCEPTIONS'] = True
@@ -37,5 +38,6 @@ def create_app():
     api.add_resource(VistaTask, '/task/<int:id_task>')
     api.add_resource(VistaTaskUser, '/tasks/usuario/<int:usuario_id>')
     api.add_resource(VistaDescarga, '/download_file/<int:id_task>')
+    api.add_resource(VistaHealthCheck, '/health-check')
     jwt = JWTManager(app)
     return app
