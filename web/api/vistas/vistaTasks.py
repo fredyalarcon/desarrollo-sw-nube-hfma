@@ -4,15 +4,13 @@ from sqlalchemy import func
 from flask import request, send_from_directory
 from datetime import datetime
 from google.cloud import storage
-import pika
+from google.cloud import pubsub_v1
 import json
 import os
 
 from api.modelos import db, Task, TaskSchema
 
 task_schema = TaskSchema()
-
-rabbit_host = os.environ.get("RABBIT_HOST") or "10.128.0.4"
 
 bucket_name = "bucket-web-api-converter"
 # Usamos barras diagonales dobles o barras diagonales normales para definir la ruta del archivo JSON
@@ -48,6 +46,19 @@ def download_blob(bucket_name, blob_name, destination_file_name) :
     blob.download_to_filename('videos/out/{}'.format(destination_file_name))
     print(f"File {blob_name} downloaded.")
 
+def publish_message(data_str) -> None:
+    project_id = "api-converter-403621"
+    topic_id = "MyTopic"
+
+    publisher = pubsub_v1.PublisherClient()
+    topic_path = publisher.topic_path(project_id, topic_id)
+
+    data = data_str.encode("utf-8")
+    # When you publish a message, the client returns a future.
+    future = publisher.publish(topic_path, data)
+    print(future.result())
+
+    print(f"Published messages to {topic_path}.")
 
 class VistaTasks(Resource):
     @jwt_required()
@@ -89,12 +100,6 @@ class VistaTasks(Resource):
     @jwt_required()
     def post(self):
         current_user_id = get_jwt_identity()
-        credentials = pika.PlainCredentials("rabbit", "rabbit")
-        parameters = pika.ConnectionParameters(rabbit_host, 5672, "/", credentials)
-        connection = pika.BlockingConnection(parameters)
-        channel = connection.channel()
-        channel.exchange_declare(exchange="task", exchange_type="topic")
-        # files
         file = request.files["fileName"]
         file_name = "{}-{}".format(int(round(datetime.now().timestamp())), file.filename)
         upload_blob(
@@ -120,11 +125,8 @@ class VistaTasks(Resource):
 
         # send event
         message = {"id_task": task.id}
-        channel.basic_publish(
-            exchange="task", routing_key="task.process", body=json.dumps(message)
-        )
+        publish_message(json.dumps(message))
         print(" [x] Sent notify message")
-        connection.close()
 
         return f"Se ha lanzado una nueva tarea de conversion, revisa el status de tu tarea:{task.id}"
 
