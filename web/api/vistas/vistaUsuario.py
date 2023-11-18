@@ -1,10 +1,7 @@
-from flask_jwt_extended import jwt_required, create_access_token
+from flask_jwt_extended import create_access_token
 from flask_restful import Resource
-from sqlalchemy import func
 from flask import jsonify, request
-from datetime import datetime, timedelta
-import pika 
-import json
+from datetime import timedelta
 
 from api.modelos import db, Usuario, UsuarioSchema
 

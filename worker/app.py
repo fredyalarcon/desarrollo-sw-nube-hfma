@@ -1,12 +1,15 @@
 from worker import create_app
 from flask_restful import Api
-import json
-import pika 
+from google.cloud import storage
+from concurrent.futures import TimeoutError
+from google.cloud import pubsub_v1
 from converter import Converter
 from datetime import datetime
+import json
+import pika 
 import os
 import time
-from google.cloud import storage
+
 
 from .modelos import db, Task
 
@@ -30,31 +33,6 @@ bucket_name = "bucket-web-api-converter"
 os.environ[
     "GOOGLE_APPLICATION_CREDENTIALS"
 ] = "./static/api-converter-403621-891683842aca.json"
-
-
-rabbit_host = os.environ.get("RABBIT_HOST") or '10.128.0.4'
-
-credentials = pika.PlainCredentials('rabbit', 'rabbit')
-parameters = pika.ConnectionParameters(rabbit_host,
-                                   5672,
-                                   '/',
-                                   credentials)
-connection = pika.BlockingConnection(parameters)
-channel = connection.channel()
-
-queue = channel.queue_declare('task_process')
-queue_name = queue.method.queue
-
-channel.exchange_declare(
-    exchange='task',
-    exchange_type='topic'
-)
-
-channel.queue_bind(
-    exchange='task',
-    queue=queue_name,
-    routing_key='task.process' # binding key
-)
 
 def upload_blob(bucket_name, source_file_name, destination_blob_name):
     """Uploads a file to the bucket."""
@@ -123,10 +101,10 @@ def convertFile(file_name, format):
 
     return output_file_name
 
-def callback(ch, method, properties, body):
+def callback(message: pubsub_v1.subscriber.message.Message) -> None:
     # Process message:
-    payload = json.loads(body)
-    id_task = payload['id_task']
+    data = json.loads(message.data.decode('utf-8'))
+    id_task = data['id_task']
     print(' [x] Processing {}, '.format(id_task))
 
     time.sleep(1)
@@ -143,9 +121,30 @@ def callback(ch, method, properties, body):
         db.session.commit()
         print(' [x] processed {}, '.format(id_task))
 
+    message.ack()
     print(' [x] Done')
-    ch.basic_ack(delivery_tag=method.delivery_tag)
 
-channel.basic_consume(on_message_callback=callback, queue=queue_name)
-print(' [x] Waiting for notify messages.')
-channel.start_consuming()
+
+
+project_id = "api-converter-403621"
+subscription_id = "MySub"
+# Number of seconds the subscriber should listen for messages
+timeout = 5.0
+
+subscriber = pubsub_v1.SubscriberClient()
+# The `subscription_path` method creates a fully qualified identifier
+# in the form `projects/{project_id}/subscriptions/{subscription_id}`
+subscription_path = subscriber.subscription_path(project_id, subscription_id)
+
+streaming_pull_future = subscriber.subscribe(subscription_path, callback=callback)
+print(f"Listening for messages on {subscription_path}..\n")
+
+# Wrap subscriber in a 'with' block to automatically call close() when done.
+with subscriber:
+    try:
+        # When `timeout` is not set, result() will block indefinitely,
+        # unless an exception is encountered first.
+        streaming_pull_future.result(timeout=timeout)
+    except TimeoutError:
+        streaming_pull_future.cancel()  # Trigger the shutdown.
+        streaming_pull_future.result()  # Block until the shutdown is complete.
