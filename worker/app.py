@@ -3,13 +3,11 @@ from flask_restful import Api
 from google.cloud import storage
 from concurrent.futures import TimeoutError
 from google.cloud import pubsub_v1
-from converter import Converter
 from datetime import datetime
 import json
-import pika 
 import os
 import time
-
+import ffmpeg
 
 from .modelos import db, Task
 
@@ -67,7 +65,6 @@ def convertFile(file_name, format):
     """
     Supported formats are: ogg, avi, mkv, webm, flv, mov, mp4, mpg
     """
-    conv = Converter()
 
     input_path_file = '{}/videos/in/{}'.format(STATIC_FOLDER, file_name)
     download_blob(bucket_name, file_name, input_path_file)
@@ -75,23 +72,13 @@ def convertFile(file_name, format):
     output_file_name = '{}.{}'.format(file_name.split('.')[0], format)
     output_path_file = '{}/videos/out/{}'.format(STATIC_FOLDER, output_file_name) 
    
-    convert = conv.convert(input_path_file, output_path_file, {
-        'format': format,
-        'audio': {
-            'codec': 'mp3',
-            'samplerate': 11025,
-            'channels': 2
-        },
-        'video': {
-            'codec': 'h264',
-            'width': 720,
-            'height': 400,
-            'fps': 15
-        }
-        })
-
-    for timecode in convert:
-        print(f'\rConverting ({timecode:.2f}) ...')
+    (
+        ffmpeg
+        .input(input_path_file)
+        .filter('fps', fps=15)
+        .output(output_path_file, vcodec='h264', crf=28, preset='fast', movflags='faststart', pix_fmt='yuv420p')
+        .run()
+    )
 
     upload_blob(
         bucket_name,
@@ -103,6 +90,7 @@ def convertFile(file_name, format):
 
 def callback(message: pubsub_v1.subscriber.message.Message) -> None:
     # Process message:
+    app_context.push()
     data = json.loads(message.data.decode('utf-8'))
     id_task = data['id_task']
     print(' [x] Processing {}, '.format(id_task))
@@ -129,14 +117,14 @@ def callback(message: pubsub_v1.subscriber.message.Message) -> None:
 project_id = "api-converter-403621"
 subscription_id = "MySub"
 # Number of seconds the subscriber should listen for messages
-timeout = 5.0
+# timeout = 5.0
 
 subscriber = pubsub_v1.SubscriberClient()
 # The `subscription_path` method creates a fully qualified identifier
 # in the form `projects/{project_id}/subscriptions/{subscription_id}`
 subscription_path = subscriber.subscription_path(project_id, subscription_id)
 
-streaming_pull_future = subscriber.subscribe(subscription_path, callback=callback)
+streaming_pull_future = subscriber.subscribe(subscription_path, callback=callback, )
 print(f"Listening for messages on {subscription_path}..\n")
 
 # Wrap subscriber in a 'with' block to automatically call close() when done.
@@ -144,7 +132,7 @@ with subscriber:
     try:
         # When `timeout` is not set, result() will block indefinitely,
         # unless an exception is encountered first.
-        streaming_pull_future.result(timeout=timeout)
+        streaming_pull_future.result()
     except TimeoutError:
         streaming_pull_future.cancel()  # Trigger the shutdown.
         streaming_pull_future.result()  # Block until the shutdown is complete.
