@@ -21,7 +21,7 @@ app_context.push()
 db.init_app(app)
 db.create_all()
 
-api = Api(app)
+# api = Api(app)
 
 STATIC_FOLDER = './static'
 
@@ -153,7 +153,7 @@ with subscriber:
         for received_message in response.received_messages:
             print(f"Received: {received_message.message.data}.")
             ack_ids.append(received_message.ack_id)
-        try:
-            callback(received_message)
-        except:
-            print(" [x] An exception occurred during processing the task ")
+            try:
+                callback(received_message)
+            except:
+                print(" [x] An exception occurred during processing the task ")
