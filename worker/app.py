@@ -63,7 +63,7 @@ def download_blob(bucket_name, blob_name, destination_file_name) :
     blob.download_to_filename(destination_file_name)
     print(f"File {blob_name} downloaded.")
 
-def convertFile(file_name, format):
+def convertFile(id_task, file_name, format):
     """
     Supported formats are: ogg, avi, mkv, webm, flv, mov, mp4, mpg
     """
@@ -73,7 +73,7 @@ def convertFile(file_name, format):
     if (not os.path.isfile(input_path_file)):
         download_blob(bucket_name, file_name, input_path_file)
 
-    output_file_name = '{}.{}'.format(file_name.split('.')[0], format)
+    output_file_name = '{}-{}.{}'.format(id_task, file_name.split('.')[0], format)
     output_path_file = '{}/videos/out/{}'.format(STATIC_FOLDER, output_file_name) 
    
     if (not os.path.isfile(output_path_file)):
@@ -110,7 +110,7 @@ def callback(message: pubsub_v1.subscriber.message.Message) -> None:
 
     if task.state == 'uploaded':
         # try:
-        task.output_name_file = convertFile(task.input_name_file, task.format_output_name_file.lower())
+        task.output_name_file = convertFile(id_task, task.input_name_file, task.format_output_name_file.lower())
         task.processed_at = datetime.now()
         # except:
         #     print(" [x] An exception occurred during video convertion")
