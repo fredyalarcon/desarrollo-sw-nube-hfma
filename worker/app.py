@@ -69,7 +69,7 @@ def convertFile(file_name, format):
     """
 
     input_path_file = '{}/videos/in/{}'.format(STATIC_FOLDER, file_name)
-    
+
     if (not os.path.isfile(input_path_file)):
         download_blob(bucket_name, file_name, input_path_file)
 
@@ -133,17 +133,18 @@ def callback(message: pubsub_v1.subscriber.message.Message) -> None:
     #     print(" [x] An exception occurred during processing the task ")
     
 
-
-
 project_id = "api-converter-403621"
 subscription_id = "MySub"
 # Number of seconds the subscriber should listen for messages
 # timeout = 5.0
 
+# Limit the subscriber to only have ten outstanding messages at a time.
+flow_control = pubsub_v1.types.FlowControl(max_messages=1)
+
 subscriber = pubsub_v1.SubscriberClient()
 # The `subscription_path` method creates a fully qualified identifier
 # in the form `projects/{project_id}/subscriptions/{subscription_id}`
-subscription_path = subscriber.subscription_path(project_id, subscription_id)
+subscription_path = subscriber.subscription_path(project_id, subscription_id, flow_control=flow_control)
 
 streaming_pull_future = subscriber.subscribe(subscription_path, callback=callback)
 print(f"Listening for messages on {subscription_path}..\n")
