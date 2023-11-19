@@ -95,39 +95,39 @@ def convertFile(file_name, format):
 
 def callback(message: pubsub_v1.subscriber.message.Message) -> None:
     # Process message:
-    try:
-        # Use `ack_with_response()` instead of `ack()` to get a future that tracks
-        # the result of the acknowledge call. When exactly-once delivery is enabled
-        # on the subscription, the message is guaranteed to not be delivered again
-        # if the ack future succeeds.
-        ack_future = message.ack_with_response()
+    # try:
+    # Use `ack_with_response()` instead of `ack()` to get a future that tracks
+    # the result of the acknowledge call. When exactly-once delivery is enabled
+    # on the subscription, the message is guaranteed to not be delivered again
+    # if the ack future succeeds.
+    ack_future = message.ack_with_response()
 
-        engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
-        session = scoped_session(sessionmaker(bind=engine))
-        
-        data = json.loads(message.data.decode('utf-8'))
-        id_task = data['id_task']
-        print(' [x] Processing {}, '.format(id_task))
+    engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
+    session = scoped_session(sessionmaker(bind=engine))
+    
+    data = json.loads(message.data.decode('utf-8'))
+    id_task = data['id_task']
+    print(' [x] Processing {}, '.format(id_task))
 
-        time.sleep(1)
-        task = session.query(Task).get_or_404(id_task)
+    time.sleep(1)
+    task = session.query(Task).get_or_404(id_task)
 
-        if task.state == 'uploaded':
-            try:
-                task.output_name_file = convertFile(task.input_name_file, task.format_output_name_file.lower())
-                task.processed_at = datetime.now()
-            except:
-                print(" [x] An exception occurred during video convertion")
+    if task.state == 'uploaded':
+        try:
+            task.output_name_file = convertFile(task.input_name_file, task.format_output_name_file.lower())
+            task.processed_at = datetime.now()
+        except:
+            print(" [x] An exception occurred during video convertion")
 
-            task.state = 'processed'
-            session.commit()
-            print(' [x] processed {}, '.format(id_task))
-            session.remove()
+        task.state = 'processed'
+        session.commit()
+        print(' [x] processed {}, '.format(id_task))
+        session.remove()
 
-        ack_future.result()
-        print(' [x] Done')
-    except:
-        print(" [x] An exception occurred during processing the task ")
+    ack_future.result()
+    print(' [x] Done')
+    # except:
+    #     print(" [x] An exception occurred during processing the task ")
     
 
 
