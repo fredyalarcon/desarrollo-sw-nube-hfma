@@ -154,6 +154,6 @@ with subscriber:
             print(f"Received: {received_message.message.data}.")
             ack_ids.append(received_message.ack_id)
             # try:
-            callback(received_message)
+            callback(received_message.message)
             # except:
             #    print(" [x] An exception occurred during processing the task ")
