@@ -4,6 +4,8 @@ from google.cloud import storage
 from concurrent.futures import TimeoutError
 from google.cloud import pubsub_v1
 from datetime import datetime
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, scoped_session
 import json
 import os
 import time
@@ -93,20 +95,22 @@ def convertFile(file_name, format):
 
 def callback(message: pubsub_v1.subscriber.message.Message) -> None:
     # Process message:
-    # Use `ack_with_response()` instead of `ack()` to get a future that tracks
-    # the result of the acknowledge call. When exactly-once delivery is enabled
-    # on the subscription, the message is guaranteed to not be delivered again
-    # if the ack future succeeds.
-
     try:
+        # Use `ack_with_response()` instead of `ack()` to get a future that tracks
+        # the result of the acknowledge call. When exactly-once delivery is enabled
+        # on the subscription, the message is guaranteed to not be delivered again
+        # if the ack future succeeds.
         ack_future = message.ack_with_response()
-        app_context.push()
+
+        engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
+        session = scoped_session(sessionmaker(bind=engine))
+        
         data = json.loads(message.data.decode('utf-8'))
         id_task = data['id_task']
         print(' [x] Processing {}, '.format(id_task))
 
         time.sleep(1)
-        task = Task.query.get_or_404(id_task)
+        task = session.query(Task).get_or_404(id_task)
 
         if task.state == 'uploaded':
             try:
@@ -116,8 +120,9 @@ def callback(message: pubsub_v1.subscriber.message.Message) -> None:
                 print(" [x] An exception occurred during video convertion")
 
             task.state = 'processed'
-            db.session.commit()
+            session.commit()
             print(' [x] processed {}, '.format(id_task))
+            session.remove()
 
         ack_future.result()
         print(' [x] Done')
