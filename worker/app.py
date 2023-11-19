@@ -120,9 +120,6 @@ def callback(message: pubsub_v1.subscriber.message.Message) -> None:
         session.commit()
         print(' [x] processed {}, '.format(id_task))
         session.remove()
-
-    message.ack()
-    print(' [x] Done')
     
 
 project_id = "api-converter-403621"
@@ -155,5 +152,9 @@ with subscriber:
             ack_ids.append(received_message.ack_id)
             # try:
             callback(received_message.message)
+            subscriber.acknowledge(
+                request={"subscription": subscription_path, "ack_ids": ack_ids}
+            )
+            print(' [x] Done')
             # except:
             #    print(" [x] An exception occurred during processing the task ")
