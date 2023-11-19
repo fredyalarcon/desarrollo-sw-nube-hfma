@@ -136,8 +136,11 @@ scheduler = pubsub_v1.subscriber.scheduler.ThreadScheduler(executor)
 subscriber = pubsub_v1.SubscriberClient()
 subscription_path = subscriber.subscription_path(project_id, subscription_id)
 
+# Limit the subscriber to only have ten outstanding messages at a time.
+flow_control = pubsub_v1.types.FlowControl(max_messages=5)
+
 streaming_pull_future = subscriber.subscribe(
-    subscription_path, callback=callback, scheduler=scheduler
+    subscription_path, callback=callback, scheduler=scheduler , flow_control=flow_control
 )
 print(f"Listening for messages on {subscription_path}..\n")
 
