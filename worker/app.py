@@ -81,7 +81,7 @@ def convertFile(id_task, file_name, format):
             ffmpeg
             .input(input_path_file)
             .filter('fps', fps=15)
-            .output(output_path_file, vcodec='h264', crf=28, preset='fast', movflags='faststart', pix_fmt='yuv420p')
+            .output(output_path_file, vcodec='h264', crf=28, preset='medium', movflags='faststart', pix_fmt='yuv420p')
             .run()
         )
 
