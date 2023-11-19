@@ -109,11 +109,11 @@ def callback(message: pubsub_v1.subscriber.message.Message) -> None:
     task = session.query(Task).get(id_task)
 
     if task.state == 'uploaded':
-        # try:
-        task.output_name_file = convertFile(id_task, task.input_name_file, task.format_output_name_file.lower())
-        task.processed_at = datetime.now()
-        # except:
-        #     print(" [x] An exception occurred during video convertion")
+        try:
+            task.output_name_file = convertFile(id_task, task.input_name_file, task.format_output_name_file.lower())
+            task.processed_at = datetime.now()
+        except:
+            print(" [x] An exception occurred during video convertion")
 
         task.state = 'processed'
         session.commit()
