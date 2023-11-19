@@ -1,8 +1,7 @@
 from worker import create_app
-from flask_restful import Api
 from google.cloud import storage
 from concurrent.futures import TimeoutError
-from google.api_core import retry
+from concurrent import futures
 from google.cloud import pubsub_v1
 from datetime import datetime
 from sqlalchemy import create_engine
@@ -120,41 +119,34 @@ def callback(message: pubsub_v1.subscriber.message.Message) -> None:
         session.commit()
         print(' [x] processed {}, '.format(id_task))
         session.remove()
-    
+
+    message.ack()
 
 project_id = "api-converter-403621"
 subscription_id = "MySub"
 # Number of seconds the subscriber should listen for messages
 # timeout = 5.0
 
-# Limit the subscriber to only have ten outstanding messages at a time.
-max_messages=1
+# An optional executor to use. If not specified, a default one with maximum 10
+# threads will be created.
+executor = futures.ThreadPoolExecutor(max_workers=1)
+# A thread pool-based scheduler. It must not be shared across SubscriberClients.
+scheduler = pubsub_v1.subscriber.scheduler.ThreadScheduler(executor)
 
 subscriber = pubsub_v1.SubscriberClient()
-# The `subscription_path` method creates a fully qualified identifier
-# in the form `projects/{project_id}/subscriptions/{subscription_id}`
 subscription_path = subscriber.subscription_path(project_id, subscription_id)
 
-# Wrap the subscriber in a 'with' block to automatically call close() to
-# close the underlying gRPC channel when done.
-with subscriber:
-    # The subscriber pulls a specific number of messages. The actual
-    # number of messages pulled may be smaller than max_messages.
-    response = subscriber.pull(
-        request={"subscription": subscription_path, "max_messages": max_messages},
-        retry=retry.Retry(deadline=60),
-    )
+streaming_pull_future = subscriber.subscribe(
+    subscription_path, callback=callback, scheduler=scheduler
+)
+print(f"Listening for messages on {subscription_path}..\n")
 
-    if len(response.received_messages) != 0:
-        ack_ids = []
-        for received_message in response.received_messages:
-            print(f"Received: {received_message.message.data}.")
-            ack_ids.append(received_message.ack_id)
-            # try:
-            callback(received_message.message)
-            subscriber.acknowledge(
-                request={"subscription": subscription_path, "ack_ids": ack_ids}
-            )
-            print(' [x] Done')
-            # except:
-            #    print(" [x] An exception occurred during processing the task ")
+# Wrap subscriber in a 'with' block to automatically call close() when done.
+with subscriber:
+    try:
+        # When `timeout` is not set, result() will block indefinitely,
+        # unless an exception is encountered first.
+        streaming_pull_future.result()
+    except TimeoutError:
+        streaming_pull_future.cancel()  # Trigger the shutdown.
+        streaming_pull_future.result()  # Block until the shutdown is complete.
