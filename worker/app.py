@@ -137,10 +137,6 @@ subscriber = pubsub_v1.SubscriberClient()
 # in the form `projects/{project_id}/subscriptions/{subscription_id}`
 subscription_path = subscriber.subscription_path(project_id, subscription_id)
 
-streaming_pull_future = subscriber.subscribe(subscription_path, callback=callbackl)
-print(f"Listening for messages on {subscription_path}..\n")
-
-
 # Wrap the subscriber in a 'with' block to automatically call close() to
 # close the underlying gRPC channel when done.
 with subscriber:
