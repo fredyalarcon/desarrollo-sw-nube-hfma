@@ -69,18 +69,21 @@ def convertFile(file_name, format):
     """
 
     input_path_file = '{}/videos/in/{}'.format(STATIC_FOLDER, file_name)
-    download_blob(bucket_name, file_name, input_path_file)
+    
+    if (not os.path.isfile(input_path_file)):
+        download_blob(bucket_name, file_name, input_path_file)
 
     output_file_name = '{}.{}'.format(file_name.split('.')[0], format)
     output_path_file = '{}/videos/out/{}'.format(STATIC_FOLDER, output_file_name) 
    
-    (
-        ffmpeg
-        .input(input_path_file)
-        .filter('fps', fps=15)
-        .output(output_path_file, vcodec='h264', crf=28, preset='fast', movflags='faststart', pix_fmt='yuv420p')
-        .run()
-    )
+    if (not os.path.isfile(output_path_file)):
+        (
+            ffmpeg
+            .input(input_path_file)
+            .filter('fps', fps=15)
+            .output(output_path_file, vcodec='h264', crf=28, preset='fast', movflags='faststart', pix_fmt='yuv420p')
+            .run()
+        )
 
     upload_blob(
         bucket_name,
