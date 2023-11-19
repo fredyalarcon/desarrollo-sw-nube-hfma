@@ -90,27 +90,37 @@ def convertFile(file_name, format):
 
 def callback(message: pubsub_v1.subscriber.message.Message) -> None:
     # Process message:
-    app_context.push()
-    data = json.loads(message.data.decode('utf-8'))
-    id_task = data['id_task']
-    print(' [x] Processing {}, '.format(id_task))
+    # Use `ack_with_response()` instead of `ack()` to get a future that tracks
+    # the result of the acknowledge call. When exactly-once delivery is enabled
+    # on the subscription, the message is guaranteed to not be delivered again
+    # if the ack future succeeds.
 
-    time.sleep(1)
-    task = Task.query.get_or_404(id_task)
+    try:
+        ack_future = message.ack_with_response()
+        app_context.push()
+        data = json.loads(message.data.decode('utf-8'))
+        id_task = data['id_task']
+        print(' [x] Processing {}, '.format(id_task))
 
-    if task.state == 'uploaded':
-        try:
-            task.output_name_file = convertFile(task.input_name_file, task.format_output_name_file.lower())
-            task.processed_at = datetime.now()
-        except:
-            print(" [x] An exception occurred")
+        time.sleep(1)
+        task = Task.query.get_or_404(id_task)
 
-        task.state = 'processed'
-        db.session.commit()
-        print(' [x] processed {}, '.format(id_task))
+        if task.state == 'uploaded':
+            try:
+                task.output_name_file = convertFile(task.input_name_file, task.format_output_name_file.lower())
+                task.processed_at = datetime.now()
+            except:
+                print(" [x] An exception occurred during video convertion")
 
-    message.ack()
-    print(' [x] Done')
+            task.state = 'processed'
+            db.session.commit()
+            print(' [x] processed {}, '.format(id_task))
+
+        ack_future.result()
+        print(' [x] Done')
+    except:
+        print(" [x] An exception occurred during processing the task ")
+    
 
 
 
@@ -124,7 +134,7 @@ subscriber = pubsub_v1.SubscriberClient()
 # in the form `projects/{project_id}/subscriptions/{subscription_id}`
 subscription_path = subscriber.subscription_path(project_id, subscription_id)
 
-streaming_pull_future = subscriber.subscribe(subscription_path, callback=callback, )
+streaming_pull_future = subscriber.subscribe(subscription_path, callback=callback)
 print(f"Listening for messages on {subscription_path}..\n")
 
 # Wrap subscriber in a 'with' block to automatically call close() when done.
