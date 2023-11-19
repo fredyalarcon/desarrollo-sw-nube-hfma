@@ -110,7 +110,7 @@ def callback(message: pubsub_v1.subscriber.message.Message) -> None:
     print(' [x] Processing {}, '.format(id_task))
 
     time.sleep(1)
-    task = session.query(Task).get_or_404(id_task)
+    task = session.query(Task).get(id_task)
 
     if task.state == 'uploaded':
         try:
