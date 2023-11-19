@@ -86,6 +86,9 @@ def convertFile(file_name, format):
         output_file_name,
     )
 
+    os.remove(input_path_file)
+    os.remove(output_path_file)
+
     return output_file_name
 
 def callback(message: pubsub_v1.subscriber.message.Message) -> None:
