@@ -98,13 +98,6 @@ def convertFile(file_name, format):
 
 def callback(message: pubsub_v1.subscriber.message.Message) -> None:
     # Process message:
-    # try:
-    # Use `ack_with_response()` instead of `ack()` to get a future that tracks
-    # the result of the acknowledge call. When exactly-once delivery is enabled
-    # on the subscription, the message is guaranteed to not be delivered again
-    # if the ack future succeeds.
-    ack_future = message.ack_with_response()
-
     engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
     session = scoped_session(sessionmaker(bind=engine))
     
@@ -127,10 +120,8 @@ def callback(message: pubsub_v1.subscriber.message.Message) -> None:
         print(' [x] processed {}, '.format(id_task))
         session.remove()
 
-    ack_future.result()
+    message.ack()
     print(' [x] Done')
-    # except:
-    #     print(" [x] An exception occurred during processing the task ")
     
 
 project_id = "api-converter-403621"
@@ -139,22 +130,33 @@ subscription_id = "MySub"
 # timeout = 5.0
 
 # Limit the subscriber to only have ten outstanding messages at a time.
-flow_control = pubsub_v1.types.FlowControl(max_messages=1)
+max_messages=1
 
 subscriber = pubsub_v1.SubscriberClient()
 # The `subscription_path` method creates a fully qualified identifier
 # in the form `projects/{project_id}/subscriptions/{subscription_id}`
 subscription_path = subscriber.subscription_path(project_id, subscription_id)
 
-streaming_pull_future = subscriber.subscribe(subscription_path, callback=callback, flow_control=flow_control)
+streaming_pull_future = subscriber.subscribe(subscription_path, callback=callbackl)
 print(f"Listening for messages on {subscription_path}..\n")
 
-# Wrap subscriber in a 'with' block to automatically call close() when done.
+
+# Wrap the subscriber in a 'with' block to automatically call close() to
+# close the underlying gRPC channel when done.
 with subscriber:
-    try:
-        # When `timeout` is not set, result() will block indefinitely,
-        # unless an exception is encountered first.
-        streaming_pull_future.result()
-    except TimeoutError:
-        streaming_pull_future.cancel()  # Trigger the shutdown.
-        streaming_pull_future.result()  # Block until the shutdown is complete.
+    # The subscriber pulls a specific number of messages. The actual
+    # number of messages pulled may be smaller than max_messages.
+    response = subscriber.pull(
+        request={"subscription": subscription_path, "max_messages": max_messages},
+        retry=retry.Retry(deadline=60),
+    )
+
+    if len(response.received_messages) != 0:
+        ack_ids = []
+        for received_message in response.received_messages:
+            print(f"Received: {received_message.message.data}.")
+            ack_ids.append(received_message.ack_id)
+        try:
+            callback(received_message)
+        except:
+            print(" [x] An exception occurred during processing the task ")
