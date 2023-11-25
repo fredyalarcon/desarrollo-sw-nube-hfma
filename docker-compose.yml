@@ -2,70 +2,59 @@ version: "3.8"
    
 services:
   web:
-    build: ./web
-    command: gunicorn -w 4 -b 0.0.0.0:5000 'api:create_app()'
-    volumes:
-      - './converter_data:/usr/src/converter'
+    build: ./web/api
+    command: python3 -m flask run --host=0.0.0.0
     environment:
       DB_HOST: "db"
-      RABBIT_HOST: "rabbit"
-      UPLOAD_FOLDER: "/usr/src/converter/in"
-      DOWNLOAD_FOLDER: "/usr/src/converter/out"
+      DB_USER: "root"
+      DB_PASSWORD: "mysql"
+      DB_NAME: "converter"
+      BUCKET_NAME: "bucket-web-api-converter"
+      TOPIC_ID: "MyTopicr"
+      PROJECT_ID: "api-converter-403621"
     ports:
       - "5000:5000"
-    depends_on:
-      - db
-    links:
-      - db
-      - rabbit
     networks:
       - default
 
   worker:
     build: ./worker
     command: python3 -m flask run --host=0.0.0.0
-    volumes:
-      - './converter_data:/usr/src/converter'
     environment:
       DB_HOST: "db"
-      RABBIT_HOST: "rabbit"
-      UPLOAD_FOLDER: "/usr/src/converter/in"
-      DOWNLOAD_FOLDER: "/usr/src/converter/out"
-    depends_on:
-      rabbit:
-          condition: service_healthy
-    links:
-      - db
-      - rabbit
+      DB_USER: "root"
+      DB_PASSWORD: "mysql"
+      DB_NAME: "converter"
+      BUCKET_NAME: "bucket-web-api-converter"
     networks:
       - default
 
-  db:
-    image: 'mysql/mysql-server:latest'
-    volumes:
-      - './mysql_data:/var/lib/mysql'
-    environment:
-     - MYSQL_DATABASE=converter
-     - MYSQL_ROOT_PASSWORD=Sup3rs3cr3t
-     - MYSQL_USER=root
-     - MYSQL_PASSWORD=mysql
-    ports:
-    - '3306:3306'
+  # db:
+  #   image: 'mysql/mysql-server:latest'
+  #   volumes:
+  #     - './mysql_data:/var/lib/mysql'
+  #   environment:
+  #    - MYSQL_DATABASE=converter
+  #    - MYSQL_ROOT_PASSWORD=Sup3rs3cr3t
+  #    - MYSQL_USER=root
+  #    - MYSQL_PASSWORD=mysql
+  #   ports:
+  #   - '3306:3306'
 
-  rabbit:
-    image: rabbitmq:3-management
-    healthcheck:
-      test: rabbitmq-diagnostics -q ping
-      interval: 10s
-      timeout: 10s
-      retries: 3
-    ports:
-    - '15672:15672'
-    - '5672:5672'
+  # rabbit:
+  #   image: rabbitmq:3-management
+  #   healthcheck:
+  #     test: rabbitmq-diagnostics -q ping
+  #     interval: 10s
+  #     timeout: 10s
+  #     retries: 3
+  #   ports:
+  #   - '15672:15672'
+  #   - '5672:5672'
 
-  nginx:
-    build: ./nginx
-    ports:
-      - 1337:80
-    depends_on:
-      - web
+  # nginx:
+  #   build: ./nginx
+  #   ports:
+  #     - 1337:80
+  #   depends_on:
+  #     - web

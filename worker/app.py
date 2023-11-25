@@ -1,4 +1,6 @@
 from worker import create_app
+from flask_restful import Api
+from flask_restful import Resource
 from google.cloud import storage
 from concurrent.futures import TimeoutError
 from concurrent import futures
@@ -20,14 +22,14 @@ app_context.push()
 db.init_app(app)
 db.create_all()
 
-# api = Api(app)
+api = Api(app)
 
 STATIC_FOLDER = './static'
 
 os.makedirs('{}/videos/in'.format(STATIC_FOLDER), exist_ok=True)
 os.makedirs('{}/videos/out'.format(STATIC_FOLDER), exist_ok=True)
 
-bucket_name = "bucket-web-api-converter"
+bucket_name = os.environ.get("BUCKET_NAME") or 'bucket-web-api-converter'
 
 # Usamos barras diagonales dobles o barras diagonales normales para definir la ruta del archivo JSON
 os.environ[
@@ -96,60 +98,32 @@ def convertFile(id_task, file_name, format):
 
     return output_file_name
 
-def callback(message: pubsub_v1.subscriber.message.Message) -> None:
-    # Process message:
-    engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
-    session = scoped_session(sessionmaker(bind=engine))
+
+class VistaHealthCheck(Resource):
+    def get(self):
+        return "Flask is healthy", 200
     
-    data = json.loads(message.data.decode('utf-8'))
-    id_task = data['id_task']
-    print(' [x] Processing {}, '.format(id_task))
 
-    time.sleep(1)
-    task = session.query(Task).get(id_task)
+class VistaWorkerTask(Resource):
+    def post(self, id_task):
+        # Process message:
+        print(' [x] Processing {}, '.format(id_task))
 
-    if task.state == 'uploaded':
-        try:
-            task.output_name_file = convertFile(id_task, task.input_name_file, task.format_output_name_file.lower())
-            task.processed_at = datetime.now()
-        except:
-            print(" [x] An exception occurred during video convertion")
+        time.sleep(1)
+        task = Task.query.get_or_404(id_task)
 
-        task.state = 'processed'
-        session.commit()
-        print(' [x] processed {}, '.format(id_task))
-        session.remove()
+        if task.state == 'uploaded':
+            try:
+                task.output_name_file = convertFile(id_task, task.input_name_file, task.format_output_name_file.lower())
+                task.processed_at = datetime.now()
+            except:
+                print(" [x] An exception occurred during video convertion")
 
-    message.ack()
+            task.state = 'processed'
+            db.session.commit()
+            print(' [x] processed {}, '.format(id_task))
+            
+        return "Ok", 200
 
-project_id = "api-converter-403621"
-subscription_id = "MySub"
-# Number of seconds the subscriber should listen for messages
-# timeout = 5.0
-
-# An optional executor to use. If not specified, a default one with maximum 10
-# threads will be created.
-executor = futures.ThreadPoolExecutor(max_workers=1)
-# A thread pool-based scheduler. It must not be shared across SubscriberClients.
-scheduler = pubsub_v1.subscriber.scheduler.ThreadScheduler(executor)
-
-subscriber = pubsub_v1.SubscriberClient()
-subscription_path = subscriber.subscription_path(project_id, subscription_id)
-
-# Limit the subscriber to only have ten outstanding messages at a time.
-flow_control = pubsub_v1.types.FlowControl(max_messages=5)
-
-streaming_pull_future = subscriber.subscribe(
-    subscription_path, callback=callback, scheduler=scheduler , flow_control=flow_control
-)
-print(f"Listening for messages on {subscription_path}..\n")
-
-# Wrap subscriber in a 'with' block to automatically call close() when done.
-with subscriber:
-    try:
-        # When `timeout` is not set, result() will block indefinitely,
-        # unless an exception is encountered first.
-        streaming_pull_future.result()
-    except TimeoutError:
-        streaming_pull_future.cancel()  # Trigger the shutdown.
-        streaming_pull_future.result()  # Block until the shutdown is complete.
+api.add_resource(VistaHealthCheck, '/health-check')
+api.add_resource(VistaWorkerTask, '/worker-task/<int:id_task>')
