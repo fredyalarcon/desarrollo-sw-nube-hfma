@@ -12,7 +12,9 @@ from api.modelos import db, Task, TaskSchema
 
 task_schema = TaskSchema()
 
-bucket_name = "bucket-web-api-converter"
+project_id = os.environ.get("PROJECT_ID") or 'api-converter-403621'
+topic_id = os.environ.get("TOPIC_ID") or 'MyTopic'
+bucket_name = os.environ.get("BUCKET_NAME") or 'bucket-web-api-converter'
 # Usamos barras diagonales dobles o barras diagonales normales para definir la ruta del archivo JSON
 os.environ[
     "GOOGLE_APPLICATION_CREDENTIALS"
@@ -47,9 +49,6 @@ def download_blob(bucket_name, blob_name, destination_file_name) :
     print(f"File {blob_name} downloaded.")
 
 def publish_message(data_str) -> None:
-    project_id = "api-converter-403621"
-    topic_id = "MyTopic"
-
     publisher = pubsub_v1.PublisherClient()
     topic_path = publisher.topic_path(project_id, topic_id)
 
