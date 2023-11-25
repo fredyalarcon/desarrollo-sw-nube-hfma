@@ -7,7 +7,12 @@
 - Andres Palma
 - Fredy Alarcon
 
-## Deployment GCP
+
+## Deployment usando Cloud Run 
+
+TDB.....
+
+## Deployment GCP usando Cloud compute instances
 
 ### Descripción 
 
