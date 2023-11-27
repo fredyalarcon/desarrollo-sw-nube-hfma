@@ -37,7 +37,7 @@ gcloud run services list
 Este código continene los 2 microservicios del web api y el worker, a continuación, se describen los pasos para desplegarlo en GCP:
 
 ### Pre requisitos
-- Configurar el cloud Storage creando un bucket llamada bucket-web-api-converter
+- Configurar el cloud Storage creando un bucket llamada bucket-web-converter
 - Configurar Cloud SQL MySQL 8.0 con un usuario llamado ´mysql2´ y password ´mysql´ y conceder los permisos de lectura y escritura desde cualquier host.
 - Configurar los servicios RabbitMQ y agregar el usuario ´rabbit´ con el password ´rabbit´
 

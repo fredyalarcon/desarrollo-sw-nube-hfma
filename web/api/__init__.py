@@ -17,9 +17,9 @@ db_host = os.environ.get("DB_HOST") or 'localhost'
 db_user = os.environ.get("DB_USER") or 'mysql2'
 db_password = os.environ.get("DB_PASSWORD") or 'mysql'
 db_name = os.environ.get("DB_NAME") or 'converter'
-project_id ="api-converter-403621"
-INSTANCE_NAME ="api-converter-403621:us-central1:cloud-sql-mysql"
-db_ip = os.environ.get("DB_HOST") or '34.67.188.0'
+project_id ="flowing-lead-403123"
+INSTANCE_NAME ="flowing-lead-403123:us-central1:cloud-sql-mysql"
+db_ip = os.environ.get("DB_HOST") or '35.239.3.249'
 
 def create_app():
     app = Flask(__name__)
@@ -29,7 +29,7 @@ def create_app():
         project=project_id, instance_name=INSTANCE_NAME)
     # Configurar la cadena de conexión en función del entorno
     # if sys.platform != 'win32':  # Verificar si no es un sistema Windows
-    #     CONNECTION_NAME = 'api-converter-403621:us-central1:cloud-sql-mysql'
+    #     CONNECTION_NAME = 'flowing-lead-403123:us-central1:cloud-sql-mysql'
     #     SQLALCHEMY_DATABASE_URI = (
     #         'mysql+pymysql://{user}:{password}@localhost/{database}'
     #         '?unix_socket=/cloudsql/{connection_name}').format(

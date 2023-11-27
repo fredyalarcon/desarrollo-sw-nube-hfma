@@ -29,12 +29,12 @@ STATIC_FOLDER = './static'
 os.makedirs('{}/videos/in'.format(STATIC_FOLDER), exist_ok=True)
 os.makedirs('{}/videos/out'.format(STATIC_FOLDER), exist_ok=True)
 
-bucket_name = os.environ.get("BUCKET_NAME") or 'bucket-web-api-converter'
+bucket_name = os.environ.get("BUCKET_NAME") or 'bucket-web-converter'
 
 # Usamos barras diagonales dobles o barras diagonales normales para definir la ruta del archivo JSON
 os.environ[
     "GOOGLE_APPLICATION_CREDENTIALS"
-] = "./static/api-converter-403621-891683842aca.json"
+] = "./static/flowing-lead-403123-4aa6b888e3a2.json"
 
 def upload_blob(bucket_name, source_file_name, destination_blob_name):
     """Uploads a file to the bucket."""
