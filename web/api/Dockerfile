@@ -10,4 +10,4 @@ RUN pip3 install --upgrade pip
 
 RUN pip3 install -r requirements.txt
 
-CMD [ "flask", "run"]
+CMD [ "python3", "-m" , "flask", "run", "-p", "8080", "--host=0.0.0.0"]

@@ -14,13 +14,33 @@ from .vistas import \
     VistaHealthCheck
 
 db_host = os.environ.get("DB_HOST") or 'localhost'
-db_user = os.environ.get("DB_USER") or 'root'
+db_user = os.environ.get("DB_USER") or 'mysql2'
 db_password = os.environ.get("DB_PASSWORD") or 'mysql'
 db_name = os.environ.get("DB_NAME") or 'converter'
+project_id ="api-converter-403621"
+INSTANCE_NAME ="api-converter-403621:us-central1:cloud-sql-mysql"
+db_ip = os.environ.get("DB_HOST") or '34.67.188.0'
 
 def create_app():
     app = Flask(__name__)
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://{}:{}@{}:3306/{}'.format(db_user, db_password, db_host, db_name)
+    app.config["SQLALCHEMY_DATABASE_URI"]= 'mysql+pymysql://{user}:{password}@{ip}/{database}'.format(
+        user=db_user, password=db_password,
+        ip=db_ip, database=db_name,
+        project=project_id, instance_name=INSTANCE_NAME)
+    # Configurar la cadena de conexión en función del entorno
+    # if sys.platform != 'win32':  # Verificar si no es un sistema Windows
+    #     CONNECTION_NAME = 'api-converter-403621:us-central1:cloud-sql-mysql'
+    #     SQLALCHEMY_DATABASE_URI = (
+    #         'mysql+pymysql://{user}:{password}@localhost/{database}'
+    #         '?unix_socket=/cloudsql/{connection_name}').format(
+    #             user=db_user, password=db_password,
+    #             database=db_name, connection_name=CONNECTION_NAME)
+    # else:
+    #     SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://{user}:{password}@{host}:3306/{database}'.format(
+    #         user=db_user, password=db_password,
+    #         host=db_host, database=db_name)
+    #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://{}:{}@{}:3306/{}'.format(db_user, db_password, db_host, db_name)
+    #app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['JWT_SECRET_KEY'] = 'frase-secreta'
     app.config['PROPAGATE_EXCEPTIONS'] = True
