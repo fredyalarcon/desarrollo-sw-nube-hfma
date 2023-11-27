@@ -9,9 +9,9 @@ services:
       DB_USER: "root"
       DB_PASSWORD: "mysql"
       DB_NAME: "converter"
-      BUCKET_NAME: "bucket-web-api-converter"
+      BUCKET_NAME: "bucket-web-converter"
       TOPIC_ID: "MyTopicr"
-      PROJECT_ID: "api-converter-403621"
+      PROJECT_ID: "flowing-lead-403123"
     ports:
       - "5000:5000"
     networks:
@@ -25,7 +25,7 @@ services:
       DB_USER: "root"
       DB_PASSWORD: "mysql"
       DB_NAME: "converter"
-      BUCKET_NAME: "bucket-web-api-converter"
+      BUCKET_NAME: "bucket-web-converter"
     networks:
       - default
 

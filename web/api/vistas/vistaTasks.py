@@ -12,13 +12,13 @@ from api.modelos import db, Task, TaskSchema
 
 task_schema = TaskSchema()
 
-project_id = os.environ.get("PROJECT_ID") or 'api-converter-403621'
+project_id = os.environ.get("PROJECT_ID") or 'flowing-lead-403123'
 topic_id = os.environ.get("TOPIC_ID") or 'MyTopic'
-bucket_name = os.environ.get("BUCKET_NAME") or 'bucket-web-api-converter'
+bucket_name = os.environ.get("BUCKET_NAME") or 'bucket-web-converter'
 # Usamos barras diagonales dobles o barras diagonales normales para definir la ruta del archivo JSON
 os.environ[
     "GOOGLE_APPLICATION_CREDENTIALS"
-] = "./static/api-converter-403621-891683842aca.json"
+] = "./static/flowing-lead-403123-4aa6b888e3a2.json"
 
 STATIC_FOLDER = './static'
 
