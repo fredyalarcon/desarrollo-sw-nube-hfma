@@ -10,7 +10,25 @@
 
 ## Deployment usando Cloud Run 
 
-TDB.....
+### Deploy the image
+
+Habilitamos los servicios para almacenar y construir nuestra imagen para posteriormente utilizar el servicio de cloud run
+
+gcloud services enable artifactregistry.googleapis.com \
+    cloudbuild.googleapis.com \
+    run.googleapis.com
+
+Luego construimos la imagen
+
+gcloud builds submit --tag gcr.io/$GOOGLE_CLOUD_PROJECT/imagen-web-api-converter:1.0
+
+### Deploy the container to Cloud Run
+
+gcloud run deploy api-converter --image gcr.io/${GOOGLE_CLOUD_PROJECT}/imagen-web-api-converter:1.0
+
+### Verify deployment
+
+gcloud run services list
 
 ## Deployment GCP usando Cloud compute instances
 
