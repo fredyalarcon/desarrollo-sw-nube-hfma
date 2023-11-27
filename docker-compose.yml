@@ -19,7 +19,7 @@ services:
 
   worker:
     build: ./worker
-    command: python3 -m flask run --host=0.0.0.0
+    command: python3 -m flask run -p 8080 --host=0.0.0.0
     environment:
       DB_HOST: "db"
       DB_USER: "root"

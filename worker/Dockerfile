@@ -16,4 +16,4 @@ RUN apt-get -y upgrade
 
 RUN apt-get install -y ffmpeg
 
-CMD [ "python3", "-m" , "flask", "run", "--host=0.0.0.0"]
+CMD [ "python3", "-m" , "flask", "run", "-p", "8080", "--host=0.0.0.0"]
