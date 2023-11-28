@@ -8,10 +8,12 @@ from google.cloud import pubsub_v1
 from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
+from flask import request
 import json
 import os
 import time
 import ffmpeg
+
 
 from .modelos import db, Task
 
@@ -105,11 +107,11 @@ class VistaHealthCheck(Resource):
     
 
 class VistaWorkerTask(Resource):
-    def post(self, id_task):
+    def post(self):
+        id_task = request.json["id_task"]
         # Process message:
         print(' [x] Processing {}, '.format(id_task))
 
-        time.sleep(1)
         task = Task.query.get_or_404(id_task)
 
         if task.state == 'uploaded':
@@ -126,4 +128,4 @@ class VistaWorkerTask(Resource):
         return "Ok", 200
 
 api.add_resource(VistaHealthCheck, '/health-check')
-api.add_resource(VistaWorkerTask, '/worker-task/<int:id_task>')
+api.add_resource(VistaWorkerTask, '/worker-task')
