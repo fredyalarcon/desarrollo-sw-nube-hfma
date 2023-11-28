@@ -123,7 +123,7 @@ class VistaTasks(Resource):
         db.session.commit()
 
         # send event
-        message = {"id_task": task.id}
+        message = {"id_task": str(task.id) }
         publish_message(json.dumps(message))
         print(" [x] Sent notify message")
 
