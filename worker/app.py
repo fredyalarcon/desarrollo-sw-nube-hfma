@@ -1,3 +1,4 @@
+import base64
 from worker import create_app
 from flask_restful import Api
 from flask_restful import Resource
@@ -108,7 +109,12 @@ class VistaHealthCheck(Resource):
 
 class VistaWorkerTask(Resource):
     def post(self):
-        id_task = request.json["id_task"]
+
+        decodedBytes = base64.b64decode(request.form["message"].data)
+        decodedStr = decodedBytes.decode("utf-8") 
+        data = json.loads(decodedStr)
+        id_task = data.id_task
+
         # Process message:
         print(' [x] Processing {}, '.format(id_task))
 
