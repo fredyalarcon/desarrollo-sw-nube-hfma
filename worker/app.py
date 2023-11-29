@@ -109,12 +109,10 @@ class VistaHealthCheck(Resource):
 
 class VistaWorkerTask(Resource):
     def post(self):
-
-        decodedBytes = base64.b64decode(request.form["message"].data)
+        decodedBytes = base64.b64decode(request.json["message"]["data"])
         decodedStr = decodedBytes.decode("utf-8") 
         data = json.loads(decodedStr)
-        id_task = data.id_task
-
+        id_task = data["id_task"]
         # Process message:
         print(' [x] Processing {}, '.format(id_task))
 
