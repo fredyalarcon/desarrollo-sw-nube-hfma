@@ -12,7 +12,7 @@
 
 ### Deploy the image
 
-Habilitamos los servicios para almacenar y construir nuestra imagen para posteriormente utilizar el servicio de cloud run.
+Habilitamos los servicios para almacenar y construir nuestra imagen para posteriormente utilizar el servicio de cloud run
 
 gcloud services enable artifactregistry.googleapis.com \
     cloudbuild.googleapis.com \
