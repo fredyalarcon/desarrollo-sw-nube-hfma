@@ -68,6 +68,14 @@ def download_blob(bucket_name, blob_name, destination_file_name) :
     blob.download_to_filename(destination_file_name)
     print(f"File {blob_name} downloaded.")
 
+def download_blob_duplicate_sonar(bucket_name, blob_name, destination_file_name) :
+    """Download a file to the bucket."""
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.get_blob('videos/in/{}'.format(blob_name))
+    blob.download_to_filename(destination_file_name)
+    print(f"File {blob_name} downloaded.")
+
 def convertFile(id_task, file_name, format):
     """
     Supported formats are: ogg, avi, mkv, webm, flv, mov, mp4, mpg
